@@ -72,10 +72,10 @@
 ## EPIC 05 — PRODUCT AND INSPECTION CONFIGURATION
 | Ticket ID | Title | Priority | Status | Dependencies | Files Changed / Modules |
 |---|---|---|---|---|---|
-| VISION-021 | Product Creation | P0 | NOT_STARTED | VISION-012, VISION-015 | backend/app/api/v1/products.py, frontend/app/(dashboard)/products/new/ |
-| VISION-022 | Product Management | P0 | NOT_STARTED | VISION-021 | frontend/app/(dashboard)/products/ |
-| VISION-023 | Product Categories | P1 | NOT_STARTED | VISION-021 | backend/app/api/v1/categories.py |
-| VISION-024 | Inspection Configuration | P0 | NOT_STARTED | VISION-021 | backend/app/api/v1/inspection_configs.py |
+| VISION-021 | Product Creation | P0 | COMPLETED | VISION-012, VISION-015 | backend/app/api/v1/endpoints/products.py, frontend/app/(dashboard)/products/new/page.tsx |
+| VISION-022 | Product Management | P0 | COMPLETED | VISION-021 | backend/app/api/v1/endpoints/products.py, frontend/app/(dashboard)/products/page.tsx |
+| VISION-023 | Product Categories | P1 | COMPLETED | VISION-021 | backend/app/api/v1/endpoints/products.py, backend/app/models/product.py |
+| VISION-024 | Inspection Configuration | P0 | COMPLETED | VISION-021 | backend/app/models/product.py, frontend/app/(dashboard)/products/new/page.tsx |
 | VISION-025 | Product Inspection History | P1 | NOT_STARTED | VISION-022, VISION-037 | frontend/app/(dashboard)/products/[id]/history/ |
 
 ---
@@ -83,10 +83,10 @@
 ## EPIC 06 — IMAGE MANAGEMENT AND PREPROCESSING
 | Ticket ID | Title | Priority | Status | Dependencies | Files Changed / Modules |
 |---|---|---|---|---|---|
-| VISION-026 | Image Upload | P0 | NOT_STARTED | VISION-005, VISION-015 | backend/app/services/storage.py, backend/app/api/v1/uploads.py |
+| VISION-026 | Image Upload | P0 | COMPLETED | VISION-005, VISION-015 | backend/app/services/image_processor.py, backend/app/api/v1/endpoints/inspections.py |
 | VISION-027 | Batch Image Upload | P1 | NOT_STARTED | VISION-026 | frontend/app/(dashboard)/inspections/batch/ |
-| VISION-028 | Image Metadata Extraction | P1 | NOT_STARTED | VISION-026 | backend/app/services/image_processor.py |
-| VISION-029 | Image Preprocessing | P0 | NOT_STARTED | VISION-026 | ml/preprocessing/pipeline.py |
+| VISION-028 | Image Metadata Extraction | P1 | COMPLETED | VISION-026 | backend/app/services/image_processor.py, backend/app/models/inspection.py |
+| VISION-029 | Image Preprocessing | P0 | COMPLETED | VISION-026 | backend/app/services/image_processor.py |
 | VISION-030 | Image Augmentation | P1 | NOT_STARTED | VISION-029 | ml/preprocessing/augmentation.py |
 
 ---
@@ -94,14 +94,14 @@
 ## EPIC 07 — CORE AI INSPECTION ENGINE
 | Ticket ID | Title | Priority | Status | Dependencies | Files Changed / Modules |
 |---|---|---|---|---|---|
-| VISION-031 | Inspection Record Creation | P0 | NOT_STARTED | VISION-021, VISION-026 | backend/app/api/v1/inspections.py |
-| VISION-032 | Inspection Job Processing | P0 | NOT_STARTED | VISION-031 | backend/app/workers/inspection_worker.py |
+| VISION-031 | Inspection Record Creation | P0 | COMPLETED | VISION-021, VISION-026 | backend/app/api/v1/endpoints/inspections.py, backend/app/repositories/inspection_repository.py |
+| VISION-032 | Inspection Job Processing | P0 | COMPLETED | VISION-031 | backend/app/models/inspection.py (Lifecycle State Machine: QUEUED, PROCESSING, COMPLETED, REQUIRES_REVIEW, FAILED) |
 | VISION-033 | AI Inference Service | P0 | NOT_STARTED | VISION-029, VISION-041 | ml/inference/service.py, backend/app/services/inference.py |
 | VISION-034 | Defect Classification | P0 | NOT_STARTED | VISION-033 | ml/inference/classifier.py |
 | VISION-035 | Anomaly Detection | P1 | NOT_STARTED | VISION-033, VISION-045 | ml/inference/anomaly.py |
 | VISION-036 | Defect Localization | P1 | NOT_STARTED | VISION-033, VISION-048 | ml/inference/segmentation.py |
-| VISION-037 | Inspection Result Persistence | P0 | NOT_STARTED | VISION-033, VISION-031 | backend/app/repositories/inspection_repo.py |
-| VISION-038 | Inspection Failure Management | P0 | NOT_STARTED | VISION-032 | backend/app/services/error_handler.py |
+| VISION-037 | Inspection Result Persistence | P0 | COMPLETED | VISION-033, VISION-031 | backend/app/repositories/inspection_repository.py, backend/app/models/inspection.py |
+| VISION-038 | Inspection Failure Management | P0 | COMPLETED | VISION-032 | backend/app/repositories/inspection_repository.py, backend/app/api/v1/endpoints/inspections.py |
 
 ---
 
@@ -149,8 +149,8 @@
 ## EPIC 12 — INSPECTION MANAGEMENT AND HUMAN REVIEW
 | Ticket ID | Title | Priority | Status | Dependencies | Files Changed / Modules |
 |---|---|---|---|---|---|
-| VISION-056 | Inspection History | P0 | NOT_STARTED | VISION-031, VISION-037 | frontend/app/(dashboard)/inspections/history/ |
-| VISION-057 | Human Review | P0 | NOT_STARTED | VISION-056 | backend/app/api/v1/reviews.py, frontend/components/inspections/ReviewDialog.tsx |
+| VISION-056 | Inspection History | P0 | COMPLETED | VISION-031, VISION-037 | backend/app/api/v1/endpoints/inspections.py, frontend/app/(dashboard)/inspections/page.tsx |
+| VISION-057 | Human Review | P0 | COMPLETED | VISION-056 | backend/app/api/v1/endpoints/inspections.py, frontend/app/(dashboard)/inspections/[id]/page.tsx |
 | VISION-058 | Review Workflow | P1 | NOT_STARTED | VISION-057 | backend/app/services/review_workflow.py |
 | VISION-059 | Inspection Audit Trail | P1 | NOT_STARTED | VISION-057 | backend/app/models/audit.py |
 

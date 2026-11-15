@@ -4,6 +4,16 @@ from backend.app.models.organization import Organization
 from backend.app.models.membership import OrganizationMembership, OrganizationRole
 from backend.app.models.invitation import Invitation
 from backend.app.models.refresh_token import RefreshToken
+from backend.app.models.product import Product, InspectionConfiguration
+from backend.app.models.inspection import (
+    Inspection,
+    InspectionStatus,
+    InspectionImage,
+    InspectionResult,
+    Defect,
+    InspectionReview,
+    ReviewDecision,
+)
 
 __all__ = [
     "Base",
@@ -15,4 +25,13 @@ __all__ = [
     "OrganizationRole",
     "Invitation",
     "RefreshToken",
+    "Product",
+    "InspectionConfiguration",
+    "Inspection",
+    "InspectionStatus",
+    "InspectionImage",
+    "InspectionResult",
+    "Defect",
+    "InspectionReview",
+    "ReviewDecision",
 ]
