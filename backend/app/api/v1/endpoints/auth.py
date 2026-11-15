@@ -11,6 +11,9 @@ from backend.app.schemas.auth import (
     AuthResponse,
     TokenResponse,
     UserProfileResponse,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+    VerifyEmailRequest,
 )
 
 router = APIRouter(prefix="/auth", tags=["Authentication & Access"])
@@ -74,3 +77,40 @@ def logout(payload: RefreshTokenRequest, db: Session = Depends(get_db)):
 def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> UserProfileResponse:
     auth_service = AuthService(db)
     return auth_service.get_user_profile(current_user)
+
+
+@router.post(
+    "/forgot-password",
+    status_code=status.HTTP_200_OK,
+    summary="Request Password Reset",
+    description="Dispatches a secure time-limited password recovery token to the registered email address."
+)
+def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    auth_service = AuthService(db)
+    token = auth_service.request_password_reset(payload.email)
+    return {"message": "Password reset instructions dispatched.", "reset_token": token}
+
+
+@router.post(
+    "/reset-password",
+    status_code=status.HTTP_200_OK,
+    summary="Reset Password with Token",
+    description="Validates a cryptographic reset token and updates the user's password."
+)
+def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+    auth_service = AuthService(db)
+    auth_service.reset_password(token=payload.token, new_password=payload.new_password)
+    return {"message": "Password has been successfully reset. You may now log in with your new credentials."}
+
+
+@router.post(
+    "/verify-email",
+    status_code=status.HTTP_200_OK,
+    summary="Verify Email Address",
+    description="Validates an email verification token and confirms ownership of the account email address."
+)
+def verify_email(payload: VerifyEmailRequest, db: Session = Depends(get_db)):
+    auth_service = AuthService(db)
+    auth_service.verify_email(token=payload.token)
+    return {"message": "Email address verified successfully."}
+

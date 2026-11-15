@@ -272,3 +272,46 @@ class AuthService:
 
     def get_user_profile(self, user: User) -> UserProfileResponse:
         return self._build_user_profile(user)
+
+    def request_password_reset(self, email: str) -> str:
+        from backend.app.services.email import EmailService
+
+        user = self.db.query(User).filter(User.email == email.strip().lower()).first()
+        if not user:
+            return "Reset instructions dispatched if account exists."
+
+        token = EmailService.send_password_reset_email(user.email)
+        return token
+
+    def reset_password(self, token: str, new_password: str) -> bool:
+        from backend.app.services.email import EmailService
+
+        email = EmailService.verify_signed_token(token, expected_purpose="password_reset")
+        if not email:
+            raise UnauthorizedException("Invalid or expired password reset token.")
+
+        validate_password_strength(new_password)
+        user = self.db.query(User).filter(User.email == email.lower()).first()
+        if not user:
+            raise NotFoundException("User not found.")
+
+        user.hashed_password = get_password_hash(new_password)
+        self.db.commit()
+        return True
+
+    def verify_email(self, token: str) -> bool:
+        from backend.app.services.email import EmailService
+
+        email = EmailService.verify_signed_token(token, expected_purpose="email_verification")
+        if not email:
+            raise UnauthorizedException("Invalid or expired email verification token.")
+
+        user = self.db.query(User).filter(User.email == email.lower()).first()
+        if not user:
+            raise NotFoundException("User not found.")
+
+        if hasattr(user, "is_verified"):
+            setattr(user, "is_verified", True)
+            self.db.commit()
+        return True
+
