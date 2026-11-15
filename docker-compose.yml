@@ -1,0 +1,80 @@
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:14-alpine
+    container_name: ironory_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ironory_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ironory_secret_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-visioninspect}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ironory_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ironory_admin} -d ${POSTGRES_DB:-visioninspect}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (Job queue coordination & caching)
+  redis:
+    image: redis:7-alpine
+    container_name: ironory_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - ironory_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend Service
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: ironory_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_NAME: Ironory
+      ENVIRONMENT: production
+      DEBUG: "false"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ironory_admin}:${POSTGRES_PASSWORD:-ironory_secret_pass}@db:5432/${POSTGRES_DB:-visioninspect}
+      REDIS_URL: redis://redis:6379/0
+      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+      STORAGE_BACKEND: local
+      STORAGE_LOCAL_ROOT: /app/storage/tenants
+    ports:
+      - "8000:8000"
+    volumes:
+      - ironory_storage:/app/storage/tenants
+
+  # Next.js Frontend Service
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: ironory_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_APP_NAME: Ironory
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+    ports:
+      - "3000:3000"
+
+volumes:
+  ironory_postgres_data:
+  ironory_redis_data:
+  ironory_storage:
