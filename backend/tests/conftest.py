@@ -19,8 +19,6 @@ def setup_test_db():
     """Ensure all tables are created in the test database for the test session."""
     Base.metadata.create_all(bind=test_engine)
     yield
-    # Cleanup tables after test session
-    Base.metadata.drop_all(bind=test_engine)
 
 
 @pytest.fixture

@@ -39,11 +39,11 @@
 ## EPIC 02 — AUTHENTICATION AND AUTHORIZATION
 | Ticket ID | Title | Priority | Status | Dependencies | Files Changed / Modules |
 |---|---|---|---|---|---|
-| VISION-006 | User Registration | P0 | NOT_STARTED | VISION-004, VISION-005 | backend/app/api/v1/auth.py, frontend/app/(auth)/register/ |
-| VISION-007 | Login and Logout | P0 | NOT_STARTED | VISION-006 | backend/app/api/v1/auth.py, frontend/app/(auth)/login/ |
+| VISION-006 | User Registration | P0 | COMPLETED | VISION-004, VISION-005 | backend/app/api/v1/endpoints/auth.py, frontend/app/(auth)/register/page.tsx |
+| VISION-007 | Login and Logout | P0 | COMPLETED | VISION-006 | backend/app/api/v1/endpoints/auth.py, frontend/app/(auth)/login/page.tsx |
 | VISION-008 | Email Verification | P1 | NOT_STARTED | VISION-006 | backend/app/services/email.py |
 | VISION-009 | Password Recovery | P1 | NOT_STARTED | VISION-006, VISION-007 | backend/app/api/v1/auth.py, frontend/app/(auth)/forgot-password/ |
-| VISION-010 | Role-Based Access Control | P0 | NOT_STARTED | VISION-007 | backend/app/security/rbac.py |
+| VISION-010 | Role-Based Access Control | P0 | COMPLETED | VISION-007 | backend/app/security/rbac.py, backend/app/security/tenant.py |
 | VISION-011 | Account Security | P1 | NOT_STARTED | VISION-007, VISION-010 | backend/app/security/rate_limiter.py |
 
 ---
@@ -51,11 +51,11 @@
 ## EPIC 03 — MULTI-TENANT ORGANIZATION MANAGEMENT
 | Ticket ID | Title | Priority | Status | Dependencies | Files Changed / Modules |
 |---|---|---|---|---|---|
-| VISION-012 | Organization Registration | P0 | NOT_STARTED | VISION-006, VISION-010 | backend/app/api/v1/organizations.py |
-| VISION-013 | Organization Profile | P1 | NOT_STARTED | VISION-012 | frontend/app/(dashboard)/settings/organization/ |
-| VISION-014 | Organization Membership | P0 | NOT_STARTED | VISION-012, VISION-010 | backend/app/api/v1/members.py, frontend/app/(dashboard)/team/ |
-| VISION-015 | Tenant Isolation | P0 | NOT_STARTED | VISION-012, VISION-004 | backend/app/security/tenant.py, backend/app/repositories/ |
-| VISION-016 | Organization Settings | P1 | NOT_STARTED | VISION-013 | backend/app/api/v1/organizations.py |
+| VISION-012 | Organization Registration | P0 | COMPLETED | VISION-006, VISION-010 | backend/app/api/v1/endpoints/auth.py, backend/app/services/auth_service.py |
+| VISION-013 | Organization Profile | P1 | COMPLETED | VISION-012 | backend/app/api/v1/endpoints/organizations.py, frontend/app/(dashboard)/settings/page.tsx |
+| VISION-014 | Organization Membership | P0 | COMPLETED | VISION-012, VISION-010 | backend/app/api/v1/endpoints/organizations.py, frontend/app/(dashboard)/team/page.tsx |
+| VISION-015 | Tenant Isolation | P0 | COMPLETED | VISION-012, VISION-004 | backend/app/security/tenant.py, backend/tests/test_tenant_isolation.py |
+| VISION-016 | Organization Settings | P1 | COMPLETED | VISION-013 | backend/app/api/v1/endpoints/organizations.py, frontend/app/(dashboard)/settings/page.tsx |
 
 ---
 
