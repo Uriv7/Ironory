@@ -157,7 +157,11 @@ export default function InspectionDetailPage() {
     }
   };
 
+  const [activeView, setActiveView] = React.useState<"original" | "overlay">("original");
+
   const imageUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"}/inspections/${inspectionId}/image`;
+  const overlayUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"}/inspections/${inspectionId}/overlay`;
+  const reportUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"}/inspections/${inspectionId}/report.pdf`;
 
   return (
     <div className="space-y-6">
@@ -194,6 +198,16 @@ export default function InspectionDetailPage() {
             </p>
           </div>
         </div>
+
+        {/* Action Controls */}
+        <div className="flex items-center gap-2">
+          <a href={reportUrl} target="_blank" rel="noreferrer" download>
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+              <FileCheck className="h-3.5 w-3.5 text-brand-400" />
+              Download PDF Report
+            </Button>
+          </a>
+        </div>
       </div>
 
       {errorMessage && (
@@ -208,18 +222,39 @@ export default function InspectionDetailPage() {
         {/* Left Column: Visual Asset Display */}
         <div className="space-y-4">
           <Card className="overflow-hidden">
-            <CardHeader className="py-3 border-b border-slate-800">
-              <CardTitle className="text-xs font-semibold flex items-center justify-between">
-                <span>Original Surface Asset</span>
-                <span className="font-mono text-[11px] text-slate-400">
-                  {inspection?.image?.width} x {inspection?.image?.height} px
-                </span>
-              </CardTitle>
+            <CardHeader className="py-2.5 px-3 border-b border-slate-800 flex flex-row items-center justify-between">
+              <div className="flex items-center gap-1.5 bg-slate-950 p-0.5 rounded-md border border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setActiveView("original")}
+                  className={`px-2.5 py-1 text-xs rounded font-medium transition-colors ${
+                    activeView === "original"
+                      ? "bg-brand-600 text-white"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  Raw Asset
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveView("overlay")}
+                  className={`px-2.5 py-1 text-xs rounded font-medium transition-colors ${
+                    activeView === "overlay"
+                      ? "bg-brand-600 text-white"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  Grad-CAM Heatmap
+                </button>
+              </div>
+              <span className="font-mono text-[11px] text-slate-400">
+                {inspection?.image?.width} x {inspection?.image?.height} px
+              </span>
             </CardHeader>
             <div className="relative aspect-square w-full bg-slate-950 flex items-center justify-center p-2 border-b border-slate-800">
               {/* Image stream */}
               <img
-                src={imageUrl}
+                src={activeView === "overlay" ? overlayUrl : imageUrl}
                 alt="Surface Inspection Asset"
                 className="max-h-full max-w-full object-contain rounded border border-slate-800/80 shadow-md"
                 onError={(e) => {

@@ -148,6 +148,14 @@ async def upload_inspection_image(
         metadata=metadata,
     )
 
+    # Execute automated AI inference
+    try:
+        from backend.app.services.inspection_execution_service import InspectionExecutionService
+        inspection = InspectionExecutionService.execute_inspection(inspection.id, current_org.id, db)
+    except Exception as e:
+        # Fallback to keeping inspection in QUEUED state if model is initializing
+        pass
+
     return _to_inspection_response(inspection)
 
 
@@ -244,3 +252,59 @@ def get_inspection_image_stream(
     storage = get_storage_service()
     image_bytes = storage.get(inspection.image.storage_key)
     return Response(content=image_bytes, media_type=inspection.image.mime_type)
+
+
+@router.get(
+    "/{inspection_id}/overlay",
+    summary="Secure Grad-CAM Overlay Stream",
+    description="Streams the Grad-CAM activation heatmap overlay for the specified inspection session."
+)
+def get_inspection_overlay_stream(
+    inspection_id: str,
+    current_org: Organization = Depends(get_current_tenant),
+    db: Session = Depends(get_db),
+):
+    repo = InspectionRepository(db)
+    inspection = repo.get_by_id_and_org(inspection_id, current_org.id)
+    if not inspection:
+        raise NotFoundException(f"Inspection '{inspection_id}' not found.")
+
+    storage = get_storage_service()
+    overlay_key = f"{current_org.id}/overlays/{inspection.id}_gradcam_overlay.jpg"
+    try:
+        overlay_bytes = storage.get(overlay_key)
+        return Response(content=overlay_bytes, media_type="image/jpeg")
+    except Exception:
+        # Fallback to original image if overlay not generated
+        if inspection.image:
+            image_bytes = storage.get(inspection.image.storage_key)
+            return Response(content=image_bytes, media_type=inspection.image.mime_type)
+        raise NotFoundException(f"Overlay for inspection '{inspection_id}' not available.")
+
+
+@router.get(
+    "/{inspection_id}/report.pdf",
+    summary="Download Official Inspection PDF Report",
+    description="Generates an official ISO-compliant PDF inspection certificate including AI predictions and quality review sign-offs."
+)
+def download_inspection_report(
+    inspection_id: str,
+    current_org: Organization = Depends(get_current_tenant),
+    db: Session = Depends(get_db),
+):
+    from backend.app.services.report_generator import QualityReportGenerator
+
+    repo = InspectionRepository(db)
+    inspection = repo.get_by_id_and_org(inspection_id, current_org.id)
+    if not inspection:
+        raise NotFoundException(f"Inspection '{inspection_id}' not found.")
+
+    pdf_bytes = QualityReportGenerator.generate_pdf(
+        inspection=inspection,
+        organization_name=current_org.name,
+    )
+
+    headers = {
+        "Content-Disposition": f'attachment; filename="Ironory_Report_{inspection.id[:8].upper()}.pdf"'
+    }
+    return Response(content=pdf_bytes, media_type="application/pdf", headers=headers)

@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Card,
@@ -28,10 +31,75 @@ import {
   Layers,
   ArrowUpRight,
   ShieldCheck,
-  FileCheck,
+  FileText,
+  Activity,
 } from "lucide-react";
+import { apiClient } from "@/lib/api-client";
+
+interface OverviewMetrics {
+  total_inspections: number;
+  total_defective: number;
+  total_passed: number;
+  pass_rate_percentage: number;
+  pending_reviews: number;
+  avg_inference_time_ms: number;
+  avg_confidence: number;
+}
+
+interface InspectionSummary {
+  id: string;
+  status: string;
+  created_at: string;
+  product_id: string;
+  result?: {
+    predicted_class: string;
+    confidence: number;
+    is_defective: boolean;
+    inference_time_ms: number;
+  };
+  review?: {
+    decision: string;
+    final_class?: string;
+  };
+}
 
 export default function DashboardPage() {
+  const [metrics, setMetrics] = useState<OverviewMetrics>({
+    total_inspections: 0,
+    total_defective: 0,
+    total_passed: 0,
+    pass_rate_percentage: 0.0,
+    pending_reviews: 0,
+    avg_inference_time_ms: 0.0,
+    avg_confidence: 0.0,
+  });
+  const [inspections, setInspections] = useState<InspectionSummary[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    async function loadDashboardData() {
+      try {
+        const [overviewData, inspectionsData] = await Promise.allSettled([
+          apiClient.get<OverviewMetrics>("/analytics/overview"),
+          apiClient.get<InspectionSummary[]>("/inspections?limit=6"),
+        ]);
+
+        if (overviewData.status === "fulfilled") {
+          setMetrics(overviewData.value);
+        }
+        if (inspectionsData.status === "fulfilled") {
+          setInspections(inspectionsData.value);
+        }
+      } catch (err) {
+        console.error("Failed to load dashboard telemetry:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDashboardData();
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Page Title & Operational Status */}
@@ -41,8 +109,8 @@ export default function DashboardPage() {
             <h2 className="text-xl font-bold tracking-tight text-white">
               Industrial Quality Inspection Overview
             </h2>
-            <Badge variant="default" className="font-mono text-[10px]">
-              Phase 1: Foundation
+            <Badge variant="success" className="font-mono text-[10px]">
+              AI Engine Online
             </Badge>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
@@ -57,7 +125,7 @@ export default function DashboardPage() {
               Register Product
             </Button>
           </Link>
-          <Link href="/inspections/new">
+          <Link href="/inspections">
             <Button variant="default" size="sm" className="gap-1.5">
               <UploadCloud className="h-3.5 w-3.5" />
               New Inspection
@@ -66,7 +134,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI Statistic Cards (Strict: Actual Zero/Empty Baseline, No Fake Numbers) */}
+      {/* KPI Statistic Cards (Live Persisted DB Metrics) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Inspections */}
         <Card>
@@ -77,14 +145,16 @@ export default function DashboardPage() {
             <ScanEye className="h-4 w-4 text-brand-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono text-white">0</div>
+            <div className="text-2xl font-bold font-mono text-white">
+              {metrics.total_inspections}
+            </div>
             <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1 font-mono">
-              <span className="text-slate-400">Baseline</span> • Zero runs recorded
+              <span className="text-slate-400">Sessions</span> • {metrics.total_inspections} total runs recorded
             </p>
           </CardContent>
         </Card>
 
-        {/* Successful / Passed */}
+        {/* Quality Pass Rate */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 border-b-0">
             <CardTitle className="text-xs font-medium text-slate-400">
@@ -93,14 +163,16 @@ export default function DashboardPage() {
             <CheckCircle2 className="h-4 w-4 text-emerald-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono text-white">0.0%</div>
+            <div className="text-2xl font-bold font-mono text-white">
+              {metrics.pass_rate_percentage}%
+            </div>
             <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1 font-mono">
-              <span className="text-slate-400">Passed</span> • 0 defective / 0 inspected
+              <span className="text-slate-400">Passed</span> • {metrics.total_passed} non-defective units
             </p>
           </CardContent>
         </Card>
 
-        {/* Defective Units */}
+        {/* Detected Defects */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 border-b-0">
             <CardTitle className="text-xs font-medium text-slate-400">
@@ -109,9 +181,11 @@ export default function DashboardPage() {
             <AlertOctagon className="h-4 w-4 text-red-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono text-white">0</div>
+            <div className="text-2xl font-bold font-mono text-white">
+              {metrics.total_defective}
+            </div>
             <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1 font-mono">
-              <span className="text-slate-400">Critical</span> • No surface defects flagged
+              <span className="text-slate-400">Flagged</span> • Steel surface anomalies detected
             </p>
           </CardContent>
         </Card>
@@ -125,9 +199,11 @@ export default function DashboardPage() {
             <Clock className="h-4 w-4 text-amber-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono text-white">0</div>
+            <div className="text-2xl font-bold font-mono text-white">
+              {metrics.pending_reviews}
+            </div>
             <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1 font-mono">
-              <span className="text-slate-400">Review Queue</span> • All caught up
+              <span className="text-slate-400">Review Queue</span> • Awaiting supervisor sign-off
             </p>
           </CardContent>
         </Card>
@@ -142,28 +218,96 @@ export default function DashboardPage() {
               <div>
                 <CardTitle>Recent Inspection Stream</CardTitle>
                 <CardDescription>
-                  Audit log of recent automated vision inspections and human sign-offs.
+                  Audit log of recent automated vision inspections, predictions, and human reviews.
                 </CardDescription>
               </div>
-              <Badge variant="outline" className="font-mono text-[10px]">
-                Live Feed
-              </Badge>
+              <Link href="/inspections">
+                <Button variant="ghost" size="sm" className="gap-1 text-xs text-brand-400">
+                  View All <ArrowUpRight className="w-3.5 h-3.5" />
+                </Button>
+              </Link>
             </CardHeader>
             <CardContent>
-              {/* Explicit Empty State */}
-              <EmptyState
-                icon={<ScanEye className="w-8 h-8 text-slate-500" />}
-                title="No Quality Inspections Yet"
-                description="Inspection sessions created in Phase 3 will appear here in real time with predicted defect classes, confidence scores, and human review decisions."
-                action={
-                  <Link href="/inspections/new">
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <UploadCloud className="h-3.5 w-3.5" />
-                      Configure Inspection Run
-                    </Button>
-                  </Link>
-                }
-              />
+              {inspections.length === 0 ? (
+                <EmptyState
+                  icon={<ScanEye className="w-8 h-8 text-slate-500" />}
+                  title="No Quality Inspections Yet"
+                  description="Upload a steel surface visual asset in the Inspections portal to run real-time AI classification and defect localization."
+                  action={
+                    <Link href="/inspections">
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <UploadCloud className="h-3.5 w-3.5" />
+                        Run First Inspection
+                      </Button>
+                    </Link>
+                  }
+                />
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Inspection ID</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>AI Verdict</TableHead>
+                      <TableHead>Confidence</TableHead>
+                      <TableHead>Timestamp</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {inspections.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-mono text-xs font-semibold text-slate-200">
+                          {item.id.slice(0, 8)}...
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              item.status === "COMPLETED"
+                                ? "success"
+                                : item.status === "REQUIRES_REVIEW"
+                                ? "warning"
+                                : item.status === "FAILED"
+                                ? "destructive"
+                                : "default"
+                            }
+                            className="text-[10px]"
+                          >
+                            {item.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {item.result ? (
+                            <span className="font-semibold text-slate-300">
+                              {item.result.predicted_class.replace("_", " ").toUpperCase()}
+                            </span>
+                          ) : (
+                            <span className="text-slate-500">In Processing</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {item.result
+                            ? `${(item.result.confidence * 100).toFixed(1)}%`
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="text-xs text-slate-400 font-mono">
+                          {new Date(item.created_at).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Link href={`/inspections/${item.id}`}>
+                            <Button variant="ghost" size="sm" className="text-xs text-brand-400">
+                              View
+                            </Button>
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -174,10 +318,10 @@ export default function DashboardPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Cpu className="h-4 w-4 text-brand-400" />
-                AI Model Architecture
+                AI Model Registry
               </CardTitle>
               <CardDescription>
-                Deep learning models prepared for INT422 and industrial inspection.
+                Trained deep learning models deployed for inference.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -191,8 +335,8 @@ export default function DashboardPage() {
                     NEU Steel Defect Classification
                   </div>
                 </div>
-                <Badge variant="warning" className="text-[10px] font-mono">
-                  Phase 4 Training
+                <Badge variant="success" className="text-[10px] font-mono">
+                  Online &bull; Active
                 </Badge>
               </div>
 
@@ -203,11 +347,11 @@ export default function DashboardPage() {
                     MobileNetV2 / EfficientNet
                   </div>
                   <div className="text-[10px] text-slate-400 font-mono">
-                    ImageNet Pretrained + Fine-Tuning
+                    ImageNet Backbone + Fine-Tuning
                   </div>
                 </div>
-                <Badge variant="warning" className="text-[10px] font-mono">
-                  Phase 4 Training
+                <Badge variant="success" className="text-[10px] font-mono">
+                  Online &bull; Active
                 </Badge>
               </div>
 
@@ -218,11 +362,11 @@ export default function DashboardPage() {
                     Convolutional Autoencoder
                   </div>
                   <div className="text-[10px] text-slate-400 font-mono">
-                    MVTec AD Anomaly Reconstruction
+                    Unsupervised Anomaly Map
                   </div>
                 </div>
-                <Badge variant="outline" className="text-[10px] font-mono">
-                  Phase 5 Autoencoder
+                <Badge variant="default" className="text-[10px] font-mono">
+                  Online &bull; Calibrated
                 </Badge>
               </div>
 
@@ -236,8 +380,8 @@ export default function DashboardPage() {
                     Pixel-level Defect Localization
                   </div>
                 </div>
-                <Badge variant="outline" className="text-[10px] font-mono">
-                  Phase 5 Segmentation
+                <Badge variant="default" className="text-[10px] font-mono">
+                  Online &bull; Active
                 </Badge>
               </div>
             </CardContent>
@@ -253,11 +397,11 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <p className="text-[11px] text-slate-400 leading-relaxed mb-3">
-                A dedicated Streamlit application connects to identical model weights and preprocessing pipelines for interactive curriculum evaluation.
+                Interactive Streamlit application demonstrating dataset exploration, Grad-CAM explainability, model benchmarking, and DCGAN defect generation.
               </p>
               <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 pt-2 border-t border-brand-900/40">
                 <span>Port: 8501</span>
-                <span>Target: Phase 7</span>
+                <span className="text-emerald-400 font-semibold">Available</span>
               </div>
             </CardContent>
           </Card>

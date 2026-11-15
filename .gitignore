@@ -44,6 +44,7 @@ node_modules/
 frontend/node_modules/
 frontend/.next/
 frontend/out/
+*.tsbuildinfo
 .pnp
 .pnp.js
 npm-debug.log*
@@ -61,8 +62,11 @@ ml/checkpoints/
 ml/runs/
 ml/logs/
 ml/data/raw/
+ml/datasets/data/
+ml/artifacts/logs/
 *.h5
 *.keras
+!ml/artifacts/*.keras
 *.pt
 *.pth
 

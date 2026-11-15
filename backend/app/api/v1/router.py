@@ -6,6 +6,7 @@ from backend.app.api.v1.endpoints import (
     organizations,
     products,
     inspections,
+    analytics,
 )
 
 api_router = APIRouter()
@@ -16,3 +17,4 @@ api_router.include_router(auth.router)
 api_router.include_router(organizations.router)
 api_router.include_router(products.router)
 api_router.include_router(inspections.router)
+api_router.include_router(analytics.router)

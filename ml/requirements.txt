@@ -1,0 +1,22 @@
+# Ironory — Deep Learning & Machine Learning Dependencies
+# Python 3.11 Runtime
+
+# Core ML & Neural Networks
+tensorflow>=2.15.0,<2.22.0
+keras>=3.0.0,<3.16.0
+tensorboard>=2.15.0,<2.22.0
+
+# Scientific & Data Processing
+numpy>=1.26.0,<2.5.0
+pandas>=2.2.0,<3.2.0
+scikit-learn>=1.4.0,<2.0.0
+scipy>=1.11.0,<1.18.0
+
+# Computer Vision & Graphics
+opencv-python-headless>=4.9.0
+Pillow>=10.2.0,<11.0.0
+matplotlib>=3.8.0,<3.12.0
+
+# Reporting & Academic Demonstration
+reportlab>=4.0.0,<5.2.0
+streamlit>=1.32.0,<1.68.0
