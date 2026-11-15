@@ -1,0 +1,6 @@
+{
+  "mean_reconstruction_error": 0.008543042712104083,
+  "std_reconstruction_error": 0.0048226779116055446,
+  "anomaly_threshold": 0.018188398535315172,
+  "sample_size": 132
+}
