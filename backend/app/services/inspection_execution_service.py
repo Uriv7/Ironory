@@ -44,18 +44,18 @@ class InspectionExecutionService:
         model_name = "baseline_cnn"
         confidence_threshold = 0.70
 
-        if product and product.inspection_config:
-            cfg = product.inspection_config
-            if cfg.primary_model:
-                raw_model = cfg.primary_model.lower().replace("-", "_").replace(" ", "_")
+        if product and product.configuration:
+            cfg = product.configuration
+            if cfg.model_type:
+                raw_model = cfg.model_type.lower().replace("-", "_").replace(" ", "_")
                 if "mobilenet" in raw_model:
                     model_name = "mobilenet_v2"
                 elif "efficientnet" in raw_model:
                     model_name = "efficientnet_b0"
                 else:
                     model_name = "baseline_cnn"
-            if cfg.defect_threshold is not None:
-                confidence_threshold = float(cfg.defect_threshold)
+            if cfg.confidence_threshold is not None:
+                confidence_threshold = float(cfg.confidence_threshold)
 
         # Retrieve image bytes from storage
         storage = get_storage_service()
@@ -130,3 +130,15 @@ class InspectionExecutionService:
             f"confidence={inference_result.confidence}, status={inspection.status}"
         )
         return inspection
+
+    @classmethod
+    def execute_inspection_background(cls, inspection_id: str, org_id: str) -> None:
+        """Execute deep learning inspection in background task with dedicated DB session."""
+        from backend.app.db.session import SessionLocal
+        db = SessionLocal()
+        try:
+            cls.execute_inspection(inspection_id=inspection_id, org_id=org_id, db=db)
+        except Exception as e:
+            logger.error(f"Background inspection execution failed for '{inspection_id}': {e}", exc_info=True)
+        finally:
+            db.close()

@@ -12,7 +12,7 @@ from threading import Lock
 from typing import Dict, List, Optional
 from fastapi import HTTPException, Request, status
 
-from backend.app.core.config import get_settings
+from backend.app.core.config import settings
 
 
 class InMemoryRateLimiter:
@@ -56,8 +56,7 @@ def check_rate_limit(
     key_prefix: str = "ip",
 ):
     """FastAPI dependency to rate limit requests by client IP address."""
-    settings = get_settings()
-    if settings.environment == "test":
+    if settings.ENVIRONMENT == "test":
         return
 
     client_ip = request.client.host if request.client else "127.0.0.1"

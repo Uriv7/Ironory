@@ -1,7 +1,7 @@
 import csv
 import io
 from typing import List, Optional
-from fastapi import APIRouter, Depends, status, Query, UploadFile, File, Form, Response
+from fastapi import APIRouter, Depends, status, Query, UploadFile, File, Form, Response, BackgroundTasks
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
@@ -108,6 +108,8 @@ def _to_inspection_response(inspection: Inspection) -> InspectionResponse:
 async def upload_inspection_image(
     product_id: str = Form(...),
     file: UploadFile = File(...),
+    async_mode: bool = Form(False),
+    background_tasks: BackgroundTasks = BackgroundTasks(),
     current_org: Organization = Depends(get_current_tenant),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -150,13 +152,20 @@ async def upload_inspection_image(
         metadata=metadata,
     )
 
-    # Execute automated AI inference
-    try:
-        from backend.app.services.inspection_execution_service import InspectionExecutionService
-        inspection = InspectionExecutionService.execute_inspection(inspection.id, current_org.id, db)
-    except Exception as e:
-        # Fallback to keeping inspection in QUEUED state if model is initializing
-        pass
+    # Execute automated AI inference (asynchronously or synchronously)
+    from backend.app.services.inspection_execution_service import InspectionExecutionService
+    if async_mode:
+        background_tasks.add_task(
+            InspectionExecutionService.execute_inspection_background,
+            inspection.id,
+            current_org.id,
+        )
+    else:
+        try:
+            inspection = InspectionExecutionService.execute_inspection(inspection.id, current_org.id, db)
+        except Exception:
+            # Fallback to keeping inspection in QUEUED state if model is initializing
+            pass
 
     return _to_inspection_response(inspection)
 
@@ -322,6 +331,8 @@ def download_inspection_report(
 async def upload_batch_inspection_images(
     product_id: str = Form(..., description="Target Product ID"),
     files: List[UploadFile] = File(..., description="List of inspection images (max 20)"),
+    async_mode: bool = Form(False, description="Run inference in background task queue"),
+    background_tasks: BackgroundTasks = BackgroundTasks(),
     current_user: User = Depends(get_current_user),
     current_org: Organization = Depends(get_current_tenant),
     db: Session = Depends(get_db),
@@ -369,10 +380,17 @@ async def upload_batch_inspection_images(
                 metadata=metadata,
             )
 
-            try:
-                inspection = InspectionExecutionService.execute_inspection(inspection.id, current_org.id, db)
-            except Exception:
-                pass
+            if async_mode:
+                background_tasks.add_task(
+                    InspectionExecutionService.execute_inspection_background,
+                    inspection.id,
+                    current_org.id,
+                )
+            else:
+                try:
+                    inspection = InspectionExecutionService.execute_inspection(inspection.id, current_org.id, db)
+                except Exception:
+                    pass
 
             successful.append(_to_inspection_response(inspection))
         except Exception:

@@ -166,4 +166,25 @@
     11. `docs/audit/PRODUCTION_READINESS_TEST_MATRIX.md`: 30-requirement traceability matrix mapping requirements to verified test evidence.
   - Updated and reconciled `FEATURE_TICKET_LIST.md` with verified statuses and new production backlog tickets (`IRONORY-OPS-001` through `IRONORY-SEC-003`).
 
+---
+
+## 2026-11-16 — Phase 10: Production Hardening Implementation (Closure of Critical Blockers)
+- **Container Packaging & Dockerfile Remediations (`IRONORY-OPS-001`, `VISION-078`):**
+  - Updated `backend/Dockerfile` to install both `backend/requirements.txt` and `ml/requirements.txt`, system packages for OpenCV (`libgl1`, `libglib2.0-0`), and copy `ml/` package into the container.
+  - Updated `docker-compose.yml` to replace legacy database identifier with `ironory` and validated syntax via `docker compose config`.
+- **Asynchronous Task Processing for Industrial Ingest (`IRONORY-INS-001`):**
+  - Upgraded `backend/app/api/v1/endpoints/inspections.py` and `backend/app/services/inspection_execution_service.py` to support `async_mode=True` with FastAPI `BackgroundTasks` running in dedicated worker DB sessions.
+  - Prevents worker thread starvation during high-volume batch inspection uploads.
+- **Client-Side Auth & Tenant Header Interceptor (`IRONORY-UI-001`):**
+  - Upgraded `frontend/lib/api-client.ts` to automatically extract JWT bearer token and tenant ID from `localStorage` (`ironory_access_token`, `ironory_org_id`) and inject `Authorization: Bearer <token>` and `X-Organization-ID` into all outbound requests.
+- **Database Schema Migration for Audit Logs (`IRONORY-DATA-001`):**
+  - Created Alembic migration script `backend/alembic/versions/c73918a24bc1_create_audit_logs.py` establishing the immutable `audit_logs` table.
+- **Explainable AI (Grad-CAM) Modernization:**
+  - Updated `ml/visualization/gradcam.py` to support modern Matplotlib (`matplotlib.colormaps`) without deprecation warnings or runtime errors.
+- **Verification & Test Suite Expansion:**
+  - Created `backend/tests/test_audit_and_async.py` verifying asynchronous upload execution, tenant-isolated audit log persistence, and sliding window rate limiting.
+  - Total Pytest: **38 / 38 Passing (100%)** across backend and ML.
+  - Frontend: **0 TypeScript Errors** via `npm run type-check`.
+
+
 

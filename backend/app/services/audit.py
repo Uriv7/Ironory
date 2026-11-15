@@ -43,3 +43,20 @@ class AuditService:
             db.rollback()
             logger.warning(f"Failed to record audit log: {e}")
         return entry
+
+    @staticmethod
+    def get_tenant_logs(
+        db: Session,
+        org_id: str,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[AuditLog]:
+        """Retrieve paginated audit logs for a specific tenant organization."""
+        return (
+            db.query(AuditLog)
+            .filter(AuditLog.organization_id == org_id)
+            .order_by(AuditLog.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )

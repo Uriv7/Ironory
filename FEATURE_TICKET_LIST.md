@@ -200,7 +200,7 @@
 ## EPIC 17 — INFRASTRUCTURE, SECURITY AND DEPLOYMENT
 | Ticket ID | Title | Priority | Status | Dependencies | Files Changed / Modules |
 |---|---|---|---|---|---|
-| VISION-078 | Docker Environment | P0 | PARTIAL | VISION-003 | docker-compose.yml, backend/Dockerfile, frontend/Dockerfile |
+| VISION-078 | Docker Environment | P0 | COMPLETED | VISION-003 | docker-compose.yml, backend/Dockerfile, frontend/Dockerfile |
 | VISION-079 | Production Configuration | P1 | NOT_STARTED | VISION-078 | infrastructure/env/ |
 | VISION-080 | GPU Support | P2 | NOT_STARTED | VISION-078 | infrastructure/docker/Dockerfile.gpu |
 | VISION-081 | Logging and Monitoring | P1 | COMPLETED | VISION-005 | backend/app/core/logging.py, backend/app/middleware/correlation.py |
@@ -225,10 +225,10 @@
 ## EPIC 19 — PRODUCTION READINESS BACKLOG (AUDIT IDENTIFIED)
 | Ticket ID | Title | Priority | Status | Target Phase | Files / Modules Affected | Description |
 |---|---|:---:|:---:|:---:|---|---|
-| `IRONORY-OPS-001` | Multi-Stage Docker ML Dependencies | **P0** | NOT_STARTED | Phase 1 | `backend/Dockerfile`, `docker-compose.yml` | Copy `ml/` package and install ML runtime packages (`tensorflow`, `reportlab`, `opencv`) into backend container. |
-| `IRONORY-INS-001` | Asynchronous Celery Worker Queue | **P0** | NOT_STARTED | Phase 1 | `backend/app/api/v1/endpoints/inspections.py`, `backend/app/workers/` | Decouple inference from HTTP thread; return `202 Accepted` and process via Redis queue. |
-| `IRONORY-UI-001` | Client-Side Auth Header Interceptor | **P0** | NOT_STARTED | Phase 1 | `frontend/lib/api-client.ts` | Auto-attach `Authorization: Bearer <token>` and `X-Organization-ID` from browser storage. |
-| `IRONORY-DATA-001` | Alembic Migration for Audit Logs | **P0** | NOT_STARTED | Phase 1 | `backend/alembic/versions/` | Generate migration version to create `audit_logs` table in production PostgreSQL. |
+| `IRONORY-OPS-001` | Multi-Stage Docker ML Dependencies | **P0** | COMPLETED | Phase 1 | `backend/Dockerfile`, `docker-compose.yml` | Copy `ml/` package and install ML runtime packages (`tensorflow`, `reportlab`, `opencv`) into backend container. |
+| `IRONORY-INS-001` | Asynchronous Celery Worker Queue | **P0** | COMPLETED | Phase 1 | `backend/app/api/v1/endpoints/inspections.py`, `backend/app/workers/` | Decouple inference from HTTP thread; return `202 Accepted` and process via Redis / background task queue. |
+| `IRONORY-UI-001` | Client-Side Auth Header Interceptor | **P0** | COMPLETED | Phase 1 | `frontend/lib/api-client.ts` | Auto-attach `Authorization: Bearer <token>` and `X-Organization-ID` from browser storage. |
+| `IRONORY-DATA-001` | Alembic Migration for Audit Logs | **P0** | COMPLETED | Phase 1 | `backend/alembic/versions/` | Generate migration version to create `audit_logs` table in production PostgreSQL. |
 | `IRONORY-SEC-001` | Redis Session & Token Blacklist | **P1** | NOT_STARTED | Phase 2 | `backend/app/security/session.py` | Sliding window session revocation on logout and role change. |
 | `IRONORY-AUD-002` | Automated Mutation Audit Middleware | **P1** | NOT_STARTED | Phase 2 | `backend/app/middleware/audit.py` | Automatically record IP, actor ID, resource diffs into `AuditLog`. |
 | `IRONORY-INS-002` | Quality Manager Override Sign-Off | **P1** | NOT_STARTED | Phase 2 | `backend/app/services/review_workflow.py` | Require Quality Manager credential signature before finalizing defect override. |

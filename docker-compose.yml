@@ -7,13 +7,13 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-ironory_admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ironory_secret_pass}
-      POSTGRES_DB: ${POSTGRES_DB:-visioninspect}
+      POSTGRES_DB: ${POSTGRES_DB:-ironory}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - ironory_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ironory_admin} -d ${POSTGRES_DB:-visioninspect}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ironory_admin} -d ${POSTGRES_DB:-ironory}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -49,7 +49,7 @@ services:
       APP_NAME: Ironory
       ENVIRONMENT: production
       DEBUG: "false"
-      DATABASE_URL: postgresql://${POSTGRES_USER:-ironory_admin}:${POSTGRES_PASSWORD:-ironory_secret_pass}@db:5432/${POSTGRES_DB:-visioninspect}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ironory_admin}:${POSTGRES_PASSWORD:-ironory_secret_pass}@db:5432/${POSTGRES_DB:-ironory}
       REDIS_URL: redis://redis:6379/0
       CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
       STORAGE_BACKEND: local

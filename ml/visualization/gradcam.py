@@ -97,10 +97,13 @@ def overlay_gradcam(
     Returns:
         (blended_pil_image, blended_numpy_array)
     """
-    import matplotlib.cm as cm
-
     # Convert heatmap to RGB using colormap
-    cmap = cm.get_cmap(colormap_name)
+    try:
+        import matplotlib as mpl
+        cmap = mpl.colormaps[colormap_name]
+    except Exception:
+        import matplotlib.cm as cm
+        cmap = cm.get_cmap(colormap_name)
     colored_heatmap = cmap(heatmap)  # RGBA in [0, 1]
     colored_heatmap = np.uint8(255 * colored_heatmap[..., :3])  # RGB uint8
 
