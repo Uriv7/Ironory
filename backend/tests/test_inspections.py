@@ -116,3 +116,82 @@ def test_inspection_session_lifecycle(client: TestClient):
     })
     assert list_res.status_code == 200
     assert len(list_res.json()) == 1
+
+
+def test_batch_inspection_upload(client: TestClient):
+    # Register tenant
+    res = client.post("/api/v1/auth/register", json={
+        "email": "batch.owner@steel.com",
+        "password": "PasswordBatch123!",
+        "full_name": "Batch Supervisor",
+        "organization_name": "Batch Steel Works",
+        "industry": "Steel Processing"
+    })
+    token = res.json()["tokens"]["access_token"]
+    org_id = res.json()["active_organization_id"]
+
+    # Create Product
+    prod_res = client.post("/api/v1/products", json={
+        "name": "Coil Strip Batch Spec",
+        "sku": "COIL-BATCH-01",
+        "code": "PROD-COIL-01",
+        "category": "Steel Coil"
+    }, headers={
+        "Authorization": f"Bearer {token}",
+        "X-Organization-ID": org_id
+    })
+    prod_id = prod_res.json()["id"]
+
+    # Prepare 3 images
+    img1 = _create_sample_png_bytes(100, 100)
+    img2 = _create_sample_png_bytes(100, 100)
+    img3 = _create_sample_png_bytes(100, 100)
+
+    batch_res = client.post(
+        "/api/v1/inspections/batch",
+        data={"product_id": prod_id},
+        files=[
+            ("files", ("sample_1.png", img1, "image/png")),
+            ("files", ("sample_2.png", img2, "image/png")),
+            ("files", ("sample_3.png", img3, "image/png")),
+        ],
+        headers={
+            "Authorization": f"Bearer {token}",
+            "X-Organization-ID": org_id,
+        }
+    )
+
+    assert batch_res.status_code == 201
+    data = batch_res.json()
+    assert data["batch_size"] == 3
+    assert data["successful_count"] == 3
+    assert data["failed_count"] == 0
+    assert len(data["inspections"]) == 3
+
+
+def test_export_inspections_csv(client: TestClient):
+    # Register tenant
+    res = client.post("/api/v1/auth/register", json={
+        "email": "csv.owner@steel.com",
+        "password": "PasswordCsv123!",
+        "full_name": "Audit Manager",
+        "organization_name": "CSV Audit Mill",
+        "industry": "Steel Processing"
+    })
+    token = res.json()["tokens"]["access_token"]
+    org_id = res.json()["active_organization_id"]
+
+    # Export CSV
+    csv_res = client.get(
+        "/api/v1/inspections/export/csv",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "X-Organization-ID": org_id,
+        }
+    )
+
+    assert csv_res.status_code == 200
+    assert "text/csv" in csv_res.headers["content-type"]
+    assert "Inspection ID" in csv_res.text
+    assert "Predicted Class" in csv_res.text
+

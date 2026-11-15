@@ -67,3 +67,11 @@ class HumanReviewRequest(BaseModel):
     final_class: str = Field(..., min_length=2, max_length=100)
     is_defective: bool
     notes: Optional[str] = Field(None, max_length=1000)
+
+
+class BatchInspectionResponse(BaseModel):
+    batch_size: int
+    successful_count: int
+    failed_count: int
+    inspections: List[InspectionResponse]
+

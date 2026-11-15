@@ -84,10 +84,10 @@
 | Ticket ID | Title | Priority | Status | Dependencies | Files Changed / Modules |
 |---|---|---|---|---|---|
 | VISION-026 | Image Upload | P0 | COMPLETED | VISION-005, VISION-015 | backend/app/services/image_processor.py, backend/app/api/v1/endpoints/inspections.py |
-| VISION-027 | Batch Image Upload | P1 | NOT_STARTED | VISION-026 | frontend/app/(dashboard)/inspections/batch/ |
+| VISION-027 | Batch Image Upload | P1 | COMPLETED | VISION-026 | backend/app/api/v1/endpoints/inspections.py, frontend/app/(dashboard)/inspections/page.tsx |
 | VISION-028 | Image Metadata Extraction | P1 | COMPLETED | VISION-026 | backend/app/services/image_processor.py, backend/app/models/inspection.py |
 | VISION-029 | Image Preprocessing | P0 | COMPLETED | VISION-026 | backend/app/services/image_processor.py |
-| VISION-030 | Image Augmentation | P1 | NOT_STARTED | VISION-029 | ml/preprocessing/augmentation.py |
+| VISION-030 | Image Augmentation | P1 | COMPLETED | VISION-029 | ml/preprocessing/augmentation.py |
 
 ---
 
@@ -141,7 +141,7 @@
 |---|---|---|---|---|---|
 | VISION-052 | GAN Architecture | P2 | COMPLETED | VISION-039 | ml/models/gan/dcgan.py |
 | VISION-053 | Synthetic Defect Generation | P2 | COMPLETED | VISION-052 | ml/models/gan/dcgan.py, streamlit_app/app.py |
-| VISION-054 | FGSM Adversarial Robustness | P3 | NOT_STARTED | VISION-040 | ml/experiments/fgsm_robustness.py |
+| VISION-054 | FGSM Adversarial Robustness | P3 | COMPLETED | VISION-040 | ml/experiments/fgsm_robustness.py |
 | VISION-055 | LSTM Defect Forecasting | P3 | COMPLETED | VISION-060 | ml/models/lstm/forecast_lstm.py, ml/training/train_lstm.py |
 
 ---
@@ -163,7 +163,7 @@
 | VISION-061 | Defect Analytics | P1 | COMPLETED | VISION-060 | backend/app/api/v1/endpoints/analytics.py |
 | VISION-062 | Inspection Performance Analytics | P1 | COMPLETED | VISION-060 | backend/app/api/v1/endpoints/analytics.py |
 | VISION-063 | PDF Inspection Reports | P0 | COMPLETED | VISION-037 | backend/app/services/report_generator.py, backend/app/api/v1/endpoints/inspections.py |
-| VISION-064 | Batch Reports | P2 | NOT_STARTED | VISION-063 | backend/app/api/v1/reports.py |
+| VISION-064 | Batch Reports | P2 | COMPLETED | VISION-063 | backend/app/api/v1/endpoints/inspections.py, frontend/app/(dashboard)/reports/page.tsx |
 
 ---
 
@@ -206,7 +206,7 @@
 | VISION-080 | GPU Support | P2 | NOT_STARTED | VISION-078 | infrastructure/docker/Dockerfile.gpu |
 | VISION-081 | Logging and Monitoring | P1 | NOT_STARTED | VISION-005 | backend/app/core/logging.py |
 | VISION-082 | Backup and Recovery | P1 | NOT_STARTED | VISION-004 | scripts/backup_db.sh |
-| VISION-083 | CI/CD | P2 | NOT_STARTED | None | .github/workflows/ci.yml |
+| VISION-083 | CI/CD | P2 | COMPLETED | None | .github/workflows/ci.yml |
 
 ---
 

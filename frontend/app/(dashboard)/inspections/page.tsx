@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/Table";
-import { ScanEye, UploadCloud, CheckCircle2, AlertOctagon, Clock, Eye, AlertCircle, RefreshCw } from "lucide-react";
+import { ScanEye, UploadCloud, CheckCircle2, AlertOctagon, Clock, Eye, AlertCircle, RefreshCw, FileDown, Layers } from "lucide-react";
 
 interface ProductOption {
   id: string;
@@ -46,6 +46,8 @@ export default function InspectionsCenterPage() {
   const [products, setProducts] = React.useState<ProductOption[]>([]);
   const [selectedProductId, setSelectedProductId] = React.useState<string>("");
   const [file, setFile] = React.useState<File | null>(null);
+  const [batchFiles, setBatchFiles] = React.useState<File[]>([]);
+  const [isBatchMode, setIsBatchMode] = React.useState(false);
   const [isUploading, setIsUploading] = React.useState(false);
   const [uploadFeedback, setUploadFeedback] = React.useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -91,42 +93,97 @@ export default function InspectionsCenterPage() {
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file || !selectedProductId) {
-      setUploadFeedback({ type: "error", text: "Please select a product and an image file." });
+    if (!selectedProductId) {
+      setUploadFeedback({ type: "error", text: "Please select a product." });
       return;
     }
 
-    setIsUploading(true);
-    setUploadFeedback(null);
-
-    try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("ironory_access_token") : null;
-      const orgId = typeof window !== "undefined" ? localStorage.getItem("ironory_org_id") : null;
-
-      const formData = new FormData();
-      formData.append("product_id", selectedProductId);
-      formData.append("file", file);
-
-      const headers: Record<string, string> = {};
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-      if (orgId) headers["X-Organization-ID"] = orgId;
-
-      const newInsp = await apiClient.post<InspectionItem>("/inspections/upload", formData, { headers });
-      setUploadFeedback({
-        type: "success",
-        text: `Inspection session #${newInsp.id.slice(0, 8)} queued successfully.`,
-      });
-      setFile(null);
-      fetchInitialData();
-    } catch (err) {
-      if (err instanceof ApiException) {
-        setUploadFeedback({ type: "error", text: err.message });
-      } else {
-        setUploadFeedback({ type: "error", text: "Upload failed. Verify image format and tenant permissions." });
+    if (isBatchMode) {
+      if (batchFiles.length === 0) {
+        setUploadFeedback({ type: "error", text: "Please select at least one image file for batch inspection." });
+        return;
       }
-    } finally {
-      setIsUploading(false);
+      setIsUploading(true);
+      setUploadFeedback(null);
+      try {
+        const token = typeof window !== "undefined" ? localStorage.getItem("ironory_access_token") : null;
+        const orgId = typeof window !== "undefined" ? localStorage.getItem("ironory_org_id") : null;
+
+        const formData = new FormData();
+        formData.append("product_id", selectedProductId);
+        for (const f of batchFiles) {
+          formData.append("files", f);
+        }
+
+        const headers: Record<string, string> = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        if (orgId) headers["X-Organization-ID"] = orgId;
+
+        const res = await apiClient.post<{ batch_size: number; successful_count: number; failed_count: number }>(
+          "/inspections/batch",
+          formData,
+          { headers }
+        );
+        setUploadFeedback({
+          type: "success",
+          text: `Batch processing complete: ${res.successful_count} of ${res.batch_size} inspections created successfully.`,
+        });
+        setBatchFiles([]);
+        fetchInitialData();
+      } catch (err) {
+        if (err instanceof ApiException) {
+          setUploadFeedback({ type: "error", text: err.message });
+        } else {
+          setUploadFeedback({ type: "error", text: "Batch upload failed. Verify files and permissions." });
+        }
+      } finally {
+        setIsUploading(false);
+      }
+    } else {
+      if (!file) {
+        setUploadFeedback({ type: "error", text: "Please select an image file." });
+        return;
+      }
+
+      setIsUploading(true);
+      setUploadFeedback(null);
+
+      try {
+        const token = typeof window !== "undefined" ? localStorage.getItem("ironory_access_token") : null;
+        const orgId = typeof window !== "undefined" ? localStorage.getItem("ironory_org_id") : null;
+
+        const formData = new FormData();
+        formData.append("product_id", selectedProductId);
+        formData.append("file", file);
+
+        const headers: Record<string, string> = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        if (orgId) headers["X-Organization-ID"] = orgId;
+
+        const newInsp = await apiClient.post<InspectionItem>("/inspections/upload", formData, { headers });
+        setUploadFeedback({
+          type: "success",
+          text: `Inspection session #${newInsp.id.slice(0, 8)} queued successfully.`,
+        });
+        setFile(null);
+        fetchInitialData();
+      } catch (err) {
+        if (err instanceof ApiException) {
+          setUploadFeedback({ type: "error", text: err.message });
+        } else {
+          setUploadFeedback({ type: "error", text: "Upload failed. Verify image format and tenant permissions." });
+        }
+      } finally {
+        setIsUploading(false);
+      }
     }
+  };
+
+  const handleExportCsv = () => {
+    const orgId = typeof window !== "undefined" ? localStorage.getItem("ironory_org_id") : null;
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+    const exportUrl = `${apiUrl}/inspections/export/csv${selectedProductId ? `?product_id=${selectedProductId}` : ""}`;
+    window.open(exportUrl, "_blank");
   };
 
   const getStatusBadgeVariant = (status: InspectionItem["status"]) => {
@@ -161,22 +218,51 @@ export default function InspectionsCenterPage() {
           </p>
         </div>
 
-        <Button variant="outline" size="sm" onClick={fetchInitialData} className="gap-1.5 self-start">
-          <RefreshCw className="h-3.5 w-3.5" />
-          Refresh Stream
-        </Button>
+        <div className="flex items-center gap-2 self-start">
+          <Button variant="outline" size="sm" onClick={handleExportCsv} className="gap-1.5">
+            <FileDown className="h-3.5 w-3.5 text-brand-400" />
+            Export Audit CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={fetchInitialData} className="gap-1.5">
+            <RefreshCw className="h-3.5 w-3.5" />
+            Refresh Stream
+          </Button>
+        </div>
       </div>
 
       {/* Upload Zone Card */}
       <Card className="border-brand-900/50 bg-gradient-to-r from-slate-900 via-navy-950 to-slate-900">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <UploadCloud className="h-4 w-4 text-brand-400" />
-            Ingest Surface Inspection Asset
-          </CardTitle>
-          <CardDescription>
-            Supported: JPEG, PNG, WEBP (min 32x32, max 4096x4096). Stored in encrypted tenant storage.
-          </CardDescription>
+        <CardHeader className="pb-3 flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <UploadCloud className="h-4 w-4 text-brand-400" />
+              {isBatchMode ? "Batch Surface Ingestion (Up to 20 Frames)" : "Ingest Single Surface Asset"}
+            </CardTitle>
+            <CardDescription>
+              Supported: JPEG, PNG, WEBP (min 32x32, max 4096x4096). Stored in encrypted tenant storage.
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-md border border-slate-800">
+            <button
+              type="button"
+              onClick={() => { setIsBatchMode(false); setUploadFeedback(null); }}
+              className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+                !isBatchMode ? "bg-brand-600 text-white" : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              Single Frame
+            </button>
+            <button
+              type="button"
+              onClick={() => { setIsBatchMode(true); setUploadFeedback(null); }}
+              className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors flex items-center gap-1 ${
+                isBatchMode ? "bg-brand-600 text-white" : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Layers className="h-3 w-3" />
+              Batch Ingest
+            </button>
+          </div>
         </CardHeader>
         <CardContent>
           {uploadFeedback && (
@@ -217,13 +303,25 @@ export default function InspectionsCenterPage() {
 
             {/* File Input */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-slate-300">Surface Image File</label>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-                className="flex h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs text-slate-300 file:mr-2 file:rounded file:border-0 file:bg-slate-800 file:px-2 file:py-0.5 file:text-xs file:text-slate-200 cursor-pointer"
-              />
+              <label className="block text-xs font-medium text-slate-300">
+                {isBatchMode ? `Surface Image Files (${batchFiles.length} selected)` : "Surface Image File"}
+              </label>
+              {isBatchMode ? (
+                <input
+                  type="file"
+                  multiple
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(e) => setBatchFiles(Array.from(e.target.files || []).slice(0, 20))}
+                  className="flex h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs text-slate-300 file:mr-2 file:rounded file:border-0 file:bg-slate-800 file:px-2 file:py-0.5 file:text-xs file:text-slate-200 cursor-pointer"
+                />
+              ) : (
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  className="flex h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs text-slate-300 file:mr-2 file:rounded file:border-0 file:bg-slate-800 file:px-2 file:py-0.5 file:text-xs file:text-slate-200 cursor-pointer"
+                />
+              )}
             </div>
 
             {/* Action */}
@@ -232,11 +330,11 @@ export default function InspectionsCenterPage() {
               variant="default"
               size="md"
               isLoading={isUploading}
-              disabled={!file || !selectedProductId}
+              disabled={isBatchMode ? batchFiles.length === 0 || !selectedProductId : !file || !selectedProductId}
               className="gap-2 h-9"
             >
               <UploadCloud className="h-4 w-4" />
-              Upload & Run Inspection
+              {isBatchMode ? `Process Batch (${batchFiles.length})` : "Upload & Run Inspection"}
             </Button>
           </form>
         </CardContent>

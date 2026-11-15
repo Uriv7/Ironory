@@ -119,3 +119,27 @@
   - Backend: 22/22 pytest tests passing (`backend/tests/`).
   - ML: 9/9 pytest tests passing (`ml/tests/`).
   - Frontend: 0 TypeScript errors (`npm run type-check`), all 11 routes prerendered cleanly (`npm run build`).
+
+---
+
+## 2026-11-16 — Phase 8: Batch Processing, Advanced Augmentation, Adversarial Robustness & CI/CD
+- **Batch Processing & Ingestion (`VISION-027`):**
+  - Added `POST /api/v1/inspections/batch` supporting concurrent multi-image ingest (up to 20 frames per batch) with automated background neural inference.
+  - Upgraded `frontend/app/(dashboard)/inspections/page.tsx` with Single Frame vs Batch Ingestion modes.
+- **Factory Drift & Sensor Augmentation Pipeline (`VISION-030`):**
+  - Implemented `ml/preprocessing/augmentation.py` with industrial noise simulation (Gaussian sensor thermal noise, iron oxide particulate fouling, non-uniform halogen lighting gradients, and conveyance motion blur).
+- **Fast Gradient Sign Method (FGSM) Adversarial Robustness (`VISION-054`):**
+  - Implemented `ml/experiments/fgsm_robustness.py` calculating adversarial loss gradients ($\nabla_x L(\theta, x, y)$) to assess deep neural network resilience against adversarial camera sensor perturbations.
+- **Inspection Audit Log CSV Export (`VISION-064`):**
+  - Added `GET /api/v1/inspections/export/csv` generating full ISO 9001 audit CSV exports with defect class, confidence ratings, and review sign-offs.
+  - Added direct "Export Audit CSV" actions in the frontend inspections and reports interfaces.
+- **Dedicated Enterprise SaaS Pages:**
+  - `frontend/app/(dashboard)/analytics/page.tsx`: Quality Yield, Pareto defect distributions, and 7-day rolling shift trends.
+  - `frontend/app/(dashboard)/reports/page.tsx`: Certified inspection runs archive with PDF and CSV export links.
+  - `frontend/app/(dashboard)/models/page.tsx`: AI Model Registry displaying all deployed deep learning microservices.
+- **Automated GitHub Actions CI/CD (`VISION-083`):**
+  - Implemented `.github/workflows/ci.yml` orchestrating parallel test jobs: PostgreSQL service container, Python 3.11 test runner (`pytest backend/tests/ ml/tests/`), and Node 20 frontend type-check & production build.
+- **Verification Evidence:**
+  - Total Pytest: **35 / 35 Passed (100%)** (24 backend + 11 ML tests).
+  - Frontend: **0 TypeScript Errors**, **14 / 14 Routes Prerendered Cleanly** via `next build`.
+

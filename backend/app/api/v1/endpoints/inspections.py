@@ -1,3 +1,4 @@
+import csv
 import io
 from typing import List, Optional
 from fastapi import APIRouter, Depends, status, Query, UploadFile, File, Form, Response
@@ -23,6 +24,7 @@ from backend.app.schemas.inspection import (
     DefectResponse,
     InspectionReviewResponse,
     HumanReviewRequest,
+    BatchInspectionResponse,
 )
 
 router = APIRouter(prefix="/inspections", tags=["Quality Inspection Sessions"])
@@ -308,3 +310,148 @@ def download_inspection_report(
         "Content-Disposition": f'attachment; filename="Ironory_Report_{inspection.id[:8].upper()}.pdf"'
     }
     return Response(content=pdf_bytes, media_type="application/pdf", headers=headers)
+
+
+@router.post(
+    "/batch",
+    response_model=BatchInspectionResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Batch Upload & Process Product Inspections",
+    description="Ingests up to 20 surface defect inspection images simultaneously, running automated AI inference across the batch."
+)
+async def upload_batch_inspection_images(
+    product_id: str = Form(..., description="Target Product ID"),
+    files: List[UploadFile] = File(..., description="List of inspection images (max 20)"),
+    current_user: User = Depends(get_current_user),
+    current_org: Organization = Depends(get_current_tenant),
+    db: Session = Depends(get_db),
+):
+    if not files or len(files) == 0:
+        raise ValidationException("At least one image must be provided.")
+    if len(files) > 20:
+        raise ValidationException("Maximum 20 images allowed per batch inspection request.")
+
+    product_repo = ProductRepository(db)
+    product = product_repo.get_by_id_and_org(product_id, current_org.id)
+    if not product:
+        raise NotFoundException(f"Product '{product_id}' not found in organization.")
+
+    repo = InspectionRepository(db)
+    storage = get_storage_service()
+    successful = []
+    failed_count = 0
+
+    from backend.app.services.inspection_execution_service import InspectionExecutionService
+
+    for f in files:
+        try:
+            content = await f.read()
+            content_type = f.content_type or "image/jpeg"
+            metadata = ImageProcessorService.validate_and_extract_metadata(content, content_type)
+
+            storage_key = storage.save(
+                file_obj=io.BytesIO(content),
+                tenant_id=current_org.id,
+                original_filename=f.filename or "batch_inspection_asset.jpg",
+                subfolder="inspections",
+            )
+
+            inspection = repo.create_inspection(
+                org_id=current_org.id,
+                product_id=product.id,
+                inspector_id=current_user.id,
+            )
+
+            repo.attach_image(
+                inspection=inspection,
+                storage_key=storage_key,
+                original_filename=f.filename or "batch_inspection_asset.jpg",
+                metadata=metadata,
+            )
+
+            try:
+                inspection = InspectionExecutionService.execute_inspection(inspection.id, current_org.id, db)
+            except Exception:
+                pass
+
+            successful.append(_to_inspection_response(inspection))
+        except Exception:
+            failed_count += 1
+
+    return BatchInspectionResponse(
+        batch_size=len(files),
+        successful_count=len(successful),
+        failed_count=failed_count,
+        inspections=successful,
+    )
+
+
+@router.get(
+    "/export/csv",
+    summary="Export Inspection Audit Log to CSV",
+    description="Generates an ISO 9001 audit-compliant CSV summary of all inspection records for the organization."
+)
+def export_inspections_csv(
+    product_id: Optional[str] = Query(None, description="Filter by product ID"),
+    current_org: Organization = Depends(get_current_tenant),
+    db: Session = Depends(get_db),
+):
+    repo = InspectionRepository(db)
+    inspections = repo.list_inspections(
+        org_id=current_org.id,
+        product_id=product_id,
+        skip=0,
+        limit=5000,
+    )
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Inspection ID",
+        "Created At (UTC)",
+        "Product ID",
+        "Status",
+        "Original Filename",
+        "Predicted Class",
+        "Confidence (%)",
+        "Is Defective",
+        "Anomaly Score",
+        "Inference Time (ms)",
+        "Review Decision",
+        "Final Verified Class",
+        "Reviewer Notes",
+    ])
+
+    for ins in inspections:
+        pred_class = ins.result.predicted_class if ins.result else "N/A"
+        conf = f"{ins.result.confidence * 100:.2f}%" if ins.result else "N/A"
+        is_def = str(ins.result.is_defective) if ins.result else "N/A"
+        anomaly = f"{ins.result.anomaly_score:.4f}" if (ins.result and ins.result.anomaly_score is not None) else "N/A"
+        inf_time = str(ins.result.inference_time_ms) if ins.result else "N/A"
+        filename = ins.image.original_filename if ins.image else "N/A"
+        rev_dec = ins.review.decision.value if ins.review else "PENDING"
+        final_cls = ins.review.final_class if ins.review else pred_class
+        notes = ins.review.notes if ins.review else ""
+
+        writer.writerow([
+            ins.id,
+            ins.created_at.isoformat(),
+            ins.product_id,
+            ins.status.value,
+            filename,
+            pred_class,
+            conf,
+            is_def,
+            anomaly,
+            inf_time,
+            rev_dec,
+            final_cls,
+            notes,
+        ])
+
+    csv_data = output.getvalue()
+    headers = {
+        "Content-Disposition": f'attachment; filename="Ironory_Inspections_{current_org.id[:8]}.csv"'
+    }
+    return Response(content=csv_data, media_type="text/csv", headers=headers)
+

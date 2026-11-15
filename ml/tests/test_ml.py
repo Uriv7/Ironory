@@ -20,6 +20,15 @@ from ml.models.segmentation.unet import build_unet
 from ml.models.gan.dcgan import build_generator, build_discriminator
 from ml.models.lstm.forecast_lstm import build_defect_forecasting_lstm
 from ml.inference.service import InferenceEngine
+from ml.preprocessing.augmentation import (
+    build_augmentation_pipeline,
+    apply_industrial_noise,
+    simulate_factory_drift,
+)
+from ml.experiments.fgsm_robustness import (
+    create_adversarial_pattern,
+    generate_fgsm_adversarial_example,
+)
 
 
 def test_neu_dataset_structure():
@@ -81,3 +90,33 @@ def test_lstm_forecasting_architecture():
     model = build_defect_forecasting_lstm(lookback_window=14, num_features=4, forecast_horizon=7)
     assert model.input_shape == (None, 14, 4)
     assert model.output_shape == (None, 7)
+
+
+def test_augmentation_pipeline_and_drift():
+    pipeline = build_augmentation_pipeline(input_shape=(224, 224, 3))
+    assert pipeline.input_shape == (None, 224, 224, 3)
+
+    sample = np.ones((224, 224, 3), dtype=np.float32) * 0.5
+    noisy = apply_industrial_noise(sample, noise_type="gaussian", intensity=0.05)
+    assert noisy.shape == (224, 224, 3)
+    assert np.all(noisy >= 0.0) and np.all(noisy <= 1.0)
+
+    drifted = simulate_factory_drift(sample)
+    assert drifted.shape == (224, 224, 3)
+    assert np.all(drifted >= 0.0) and np.all(drifted <= 1.0)
+
+
+def test_fgsm_adversarial_pattern_generation():
+    import tensorflow as tf
+
+    model = build_baseline_cnn(input_shape=(224, 224, 3), num_classes=6)
+    img_tensor = tf.ones((1, 224, 224, 3), dtype=tf.float32) * 0.5
+    label_tensor = tf.constant([0], dtype=tf.int32)
+
+    perturbation = create_adversarial_pattern(model, img_tensor, label_tensor)
+    assert perturbation.shape == (1, 224, 224, 3)
+
+    adv_img, pert = generate_fgsm_adversarial_example(model, img_tensor, label_tensor, epsilon=0.05)
+    assert adv_img.shape == (1, 224, 224, 3)
+    assert np.all(adv_img >= 0.0) and np.all(adv_img <= 1.0)
+
